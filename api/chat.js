@@ -3,14 +3,17 @@ export const config = {
     bodyParser: true,
   },
 };
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
   try {
     const { messages } = req.body;
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -74,16 +77,28 @@ The exact number always depends on the specific property and scope, so never quo
 IF YOU DON'T KNOW SOMETHING:
 If a question comes up that isn't covered here, do not guess or make up an answer. Be honest that you'll need to check with Omar and LaTanya directly, and pivot to capturing their contact details so the team can follow up with an accurate answer.
 
+LEAD CAPTURE INSTRUCTIONS:
+Your goal is to collect three things from every interested visitor: their name, their best contact method (phone or email), and what service or property they need help with. Collect these naturally through conversation, not all at once like a form.
+
+Once you have collected all three (name, contact, and service/need), you must append the following block at the very end of your response, on a new line, with no explanation or commentary around it:
+
+%%LEAD%%{"name":"[their name]","contact":"[their phone or email]","service":"[what they need]"}%%END%%
+
+This block must appear exactly once, only when you have all three pieces of information confirmed in the conversation. Do not include it in any other response. Do not mention it to the user. After appending it, close the conversation warmly by telling them Omar and LaTanya will be in touch within a few hours.
+
 YOUR JOB:
 Answer questions about services, hours, and service area honestly and helpfully using only the information above. For anything beyond general info, especially pricing, scheduling, or specific property details, your goal is to capture the lead: politely ask for their name, best contact method (phone or email), and what they need done, then let them know Omar and LaTanya will follow up directly, usually within a few hours. Keep responses short and natural, like a helpful real person texting back, not a sales script.`,
         messages: messages,
       }),
     });
+
     const data = await response.json();
+
     if (!response.ok) {
       console.error('Anthropic error:', JSON.stringify(data));
       return res.status(500).json({ error: 'API error', detail: data });
     }
+
     return res.status(200).json({ reply: data.content[0].text });
   } catch (err) {
     console.error('Handler error:', err.message);
