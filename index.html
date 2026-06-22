@@ -221,7 +221,7 @@
 
   function addMessage(text, role) {
     const div = document.createElement('div');
-    div.className = `message ${role}`;
+    div.className = 'message ' + role;
     div.textContent = text;
     messagesEl.appendChild(div);
     messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -242,28 +242,53 @@
     if (el) el.remove();
   }
 
-  function extractAndFireLead(text) {
-    const match = text.match(/%%LEAD%%({.*?})%%END%%/s);
+  function buildTranscript() {
+    return conversationHistory
+      .map(function(m) {
+        return (m.role === 'user' ? 'Customer' : 'JoiFul Bot') + ': ' + m.content;
+      })
+      .join('\n');
+  }
+
+  async function extractAndFireLead(text) {
+    const match = text.match(/%%LEAD%%[\s\S]*?%%END%%/);
     if (!match) return text;
 
+    const cleanText = text.replace(/%%LEAD%%[\s\S]*?%%END%%/, '').trim();
+    const transcript = buildTranscript();
+
     try {
-      const lead = JSON.parse(match[1]);
+      const summaryRes = await fetch('/api/summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript: transcript })
+      });
+
+      const summaryData = await summaryRes.json();
+      const lead = summaryData.lead || {};
+
       fetch(MAKE_WEBHOOK, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: lead.name,
-          contact: lead.contact,
-          service: lead.service,
+          name: lead.name || 'Unknown',
+          phone: lead.phone || 'Unknown',
+          contact_preference: lead.contact_preference || 'Unknown',
+          service_needed: lead.service_needed || 'Unknown',
+          property_details: lead.property_details || 'Unknown',
+          urgency: lead.urgency || 'Unknown',
+          summary: lead.summary || 'No summary available',
+          transcript: transcript,
           source: 'JoiFul Chatbot',
           timestamp: new Date().toISOString()
         })
-      }).catch(err => console.error('Webhook error:', err));
-    } catch (e) {
-      console.error('Lead parse error:', e);
+      }).catch(function(err) { console.error('Webhook error:', err); });
+
+    } catch (err) {
+      console.error('Lead pipeline error:', err);
     }
 
-    return text.replace(/%%LEAD%%.*?%%END%%/s, '').trim();
+    return cleanText;
   }
 
   async function sendMessage() {
@@ -290,7 +315,7 @@
       removeTyping();
 
       const rawReply = data.reply || 'Sorry, something went wrong. Please try again.';
-      const cleanReply = extractAndFireLead(rawReply);
+      const cleanReply = await extractAndFireLead(rawReply);
 
       addMessage(cleanReply, 'bot');
       conversationHistory.push({ role: 'assistant', content: cleanReply });
@@ -307,19 +332,19 @@
     sendMessage();
   }
 
-  inputEl.addEventListener('keydown', (e) => {
+  inputEl.addEventListener('keydown', function(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
   });
 
-  inputEl.addEventListener('input', () => {
+  inputEl.addEventListener('input', function() {
     inputEl.style.height = 'auto';
     inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
   });
 
-  window.addEventListener('load', () => {
+  window.addEventListener('load', function() {
     const welcome = "Hi! Thanks for stopping by JoiFul Services. We handle cleaning, turnovers, maintenance, lawn care, and PadSplit setup across Atlanta and the surrounding area. What can I help you with today?";
     addMessage(welcome, 'bot');
     conversationHistory.push({ role: 'assistant', content: welcome });
