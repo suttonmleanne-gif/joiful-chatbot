@@ -6,7 +6,6 @@
   <title>JoiFul Services Chat</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
       font-family: 'Nunito Sans', sans-serif;
       background: #FEFCF8;
@@ -15,7 +14,6 @@
       height: 100vh;
       overflow: hidden;
     }
-
     #chat-header {
       background: #1B3564;
       color: #FEFCF8;
@@ -25,7 +23,6 @@
       gap: 12px;
       flex-shrink: 0;
     }
-
     #chat-header .avatar {
       width: 40px;
       height: 40px;
@@ -39,13 +36,11 @@
       color: #FEFCF8;
       font-family: 'Nunito', sans-serif;
     }
-
     #chat-header .info .name {
       font-family: 'Nunito', sans-serif;
       font-weight: 900;
       font-size: 16px;
     }
-
     #chat-header .info .status {
       font-size: 12px;
       color: #6B7A3E;
@@ -53,7 +48,6 @@
       align-items: center;
       gap: 4px;
     }
-
     #chat-header .info .status::before {
       content: '';
       display: inline-block;
@@ -62,7 +56,6 @@
       border-radius: 50%;
       background: #6B7A3E;
     }
-
     #messages {
       flex: 1;
       overflow-y: auto;
@@ -71,7 +64,6 @@
       flex-direction: column;
       gap: 12px;
     }
-
     .message {
       max-width: 80%;
       padding: 12px 16px;
@@ -80,21 +72,18 @@
       line-height: 1.5;
       color: #1B3564;
     }
-
     .message.bot {
       background: #fff;
       border: 1px solid #e8e4de;
       border-bottom-left-radius: 4px;
       align-self: flex-start;
     }
-
     .message.user {
       background: #1B3564;
       color: #FEFCF8;
       border-bottom-right-radius: 4px;
       align-self: flex-end;
     }
-
     .message.typing {
       background: #fff;
       border: 1px solid #e8e4de;
@@ -103,7 +92,6 @@
       color: #999;
       font-style: italic;
     }
-
     #suggestions {
       display: flex;
       flex-wrap: wrap;
@@ -111,7 +99,6 @@
       padding: 0 16px 12px;
       flex-shrink: 0;
     }
-
     .suggestion-btn {
       background: #fff;
       border: 1px solid #478CD7;
@@ -123,12 +110,10 @@
       font-family: 'Nunito Sans', sans-serif;
       transition: background 0.15s, color 0.15s;
     }
-
     .suggestion-btn:hover {
       background: #478CD7;
       color: #fff;
     }
-
     #input-area {
       display: flex;
       align-items: center;
@@ -138,7 +123,6 @@
       background: #FEFCF8;
       flex-shrink: 0;
     }
-
     #user-input {
       flex: 1;
       border: 1px solid #d0ccc5;
@@ -152,11 +136,7 @@
       resize: none;
       line-height: 1.4;
     }
-
-    #user-input:focus {
-      border-color: #478CD7;
-    }
-
+    #user-input:focus { border-color: #478CD7; }
     #send-btn {
       width: 40px;
       height: 40px;
@@ -170,17 +150,8 @@
       flex-shrink: 0;
       transition: background 0.15s;
     }
-
-    #send-btn:hover {
-      background: #478CD7;
-    }
-
-    #send-btn svg {
-      width: 18px;
-      height: 18px;
-      fill: #FEFCF8;
-    }
-
+    #send-btn:hover { background: #478CD7; }
+    #send-btn svg { width: 18px; height: 18px; fill: #FEFCF8; }
     @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@900&family=Nunito+Sans:wght@400;600&display=swap');
   </style>
 </head>
@@ -215,31 +186,27 @@
 <script>
   const MAKE_WEBHOOK = 'https://hook.us2.make.com/dpq5g5vj3p0r59d0m9c8ahxcw2cngr5q';
   const conversationHistory = [];
+  let leadFired = false;
 
   const messagesEl = document.getElementById('messages');
   const inputEl = document.getElementById('user-input');
 
-  function addMessage(text, role) {
-    const div = document.createElement('div');
-    div.className = 'message ' + role;
-    div.textContent = text;
-    messagesEl.appendChild(div);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-    return div;
-  }
+  const LEAD_SIGNALS = [
+    'will be in touch',
+    'will reach out',
+    'will follow up',
+    'will get back to you',
+    'will contact you',
+    'expect to hear',
+    'within a few hours',
+    'omar and latanya will',
+    'give you a call',
+    'give you a ring'
+  ];
 
-  function showTyping() {
-    const div = document.createElement('div');
-    div.className = 'message typing';
-    div.id = 'typing-indicator';
-    div.textContent = 'JoiFul Services is typing...';
-    messagesEl.appendChild(div);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-  }
-
-  function removeTyping() {
-    const el = document.getElementById('typing-indicator');
-    if (el) el.remove();
+  function isLeadComplete(text) {
+    const lower = text.toLowerCase();
+    return LEAD_SIGNALS.some(function(signal) { return lower.includes(signal); });
   }
 
   function buildTranscript() {
@@ -250,11 +217,10 @@
       .join('\n');
   }
 
-  async function extractAndFireLead(text) {
-    const match = text.match(/%%LEAD%%[\s\S]*?%%END%%/);
-    if (!match) return text;
+  async function fireLead() {
+    if (leadFired) return;
+    leadFired = true;
 
-    const cleanText = text.replace(/%%LEAD%%[\s\S]*?%%END%%/, '').trim();
     const transcript = buildTranscript();
 
     try {
@@ -287,8 +253,29 @@
     } catch (err) {
       console.error('Lead pipeline error:', err);
     }
+  }
 
-    return cleanText;
+  function addMessage(text, role) {
+    const div = document.createElement('div');
+    div.className = 'message ' + role;
+    div.textContent = text;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return div;
+  }
+
+  function showTyping() {
+    const div = document.createElement('div');
+    div.className = 'message typing';
+    div.id = 'typing-indicator';
+    div.textContent = 'JoiFul Services is typing...';
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function removeTyping() {
+    const el = document.getElementById('typing-indicator');
+    if (el) el.remove();
   }
 
   async function sendMessage() {
@@ -314,11 +301,14 @@
       const data = await response.json();
       removeTyping();
 
-      const rawReply = data.reply || 'Sorry, something went wrong. Please try again.';
-      const cleanReply = await extractAndFireLead(rawReply);
+      const reply = data.reply || 'Sorry, something went wrong. Please try again.';
 
-      addMessage(cleanReply, 'bot');
-      conversationHistory.push({ role: 'assistant', content: cleanReply });
+      addMessage(reply, 'bot');
+      conversationHistory.push({ role: 'assistant', content: reply });
+
+      if (!leadFired && isLeadComplete(reply)) {
+        fireLead();
+      }
 
     } catch (err) {
       removeTyping();
