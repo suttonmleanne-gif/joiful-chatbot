@@ -31,7 +31,7 @@ Your job is to read a chatbot conversation transcript and extract a clean, actio
 Return ONLY a JSON object with these fields, nothing else, no markdown, no explanation:
 {
   "name": "customer full name or Unknown",
-  "phone": "phone number or Unknown",
+"phone": "phone number or email address provided as contact, or Unknown. The contact info may be referred to as contact, number, email, text me at, reach me at, or call me at. Extract whichever one was provided",
   "contact_preference": "how they want to be reached (text, call, email) or Unknown",
   "service_needed": "what service or property help they need",
   "property_details": "any details about their property, location, number of units, etc or Unknown",
