@@ -54,7 +54,7 @@ Return ONLY a JSON object with these fields, nothing else, no markdown, no expla
       return res.status(500).json({ error: 'API error', detail: data });
     }
 
-    const raw = data.content[0].text;
+    const raw = data.content[0].text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
     let parsed;
     try {
