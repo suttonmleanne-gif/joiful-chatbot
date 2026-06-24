@@ -205,9 +205,10 @@
   ];
 
   function isLeadComplete(text) {
-    const lower = text.toLowerCase();
-    return LEAD_SIGNALS.some(function(signal) { return lower.includes(signal); });
-  }
+  if (text.includes('%%LEAD%%')) return true;
+  const lower = text.toLowerCase();
+  return LEAD_SIGNALS.some(function(signal) { return lower.includes(signal); });
+}
 
   function buildTranscript() {
     return conversationHistory
@@ -301,7 +302,8 @@
       const data = await response.json();
       removeTyping();
 
-      const reply = data.reply || 'Sorry, something went wrong. Please try again.';
+const raw = data.reply || 'Sorry, something went wrong. Please try again.';
+const reply = raw.replace(/%%LEAD%%[\s\S]*?%%END%%/g, '').trim();
 
       addMessage(reply, 'bot');
       conversationHistory.push({ role: 'assistant', content: reply });
